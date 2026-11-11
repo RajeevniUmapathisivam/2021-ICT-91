@@ -1,0 +1,352 @@
+# ==========================================
+# Dengue Virus Comparative Genomic Analysis
+# ==========================================
+#
+# Project: ICA 3 - Bioinformatics
+# Language: R
+# Dataset: Eight dengue virus sequences
+# Source: NCBI GenBank
+#
+# Analysis steps:
+# 1. Download DNA sequences
+# 2. Calculate nucleotide frequencies
+# 3. Calculate GC content
+# 4. Compare genome lengths
+# 5. Perform multiple sequence alignment
+# 6. Calculate genetic distances
+# 7. Create a genetic distance heatmap
+# 8. Construct a phylogenetic tree
+#
+# ==========================================
+
+# Step 1: Install required packages
+
+install.packages("rentrez")
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("ape")
+install.packages("BiocManager")
+
+# Install Bioconductor packages
+
+BiocManager::install("Biostrings")
+
+BiocManager::install("DECIPHER")
+
+
+# Step 3: Define accession numbers
+
+accessions <- c(
+  "KM204119",
+  "EU848545",
+  "KM204118",
+  "AF038403",
+  "KU050695",
+  "M93130",
+  "KR011349",
+  "AY947539"
+)
+
+serotypes <- c(
+  "DENV-1", "DENV-1",
+  "DENV-2", "DENV-2",
+  "DENV-3", "DENV-3",
+  "DENV-4", "DENV-4"
+)
+
+# Download sequences from NCBI
+
+fasta_lines <- character()
+
+for (i in seq_along(accessions)) {
+  
+  sequence_data <- entrez_fetch(
+    db = "nuccore",
+    id = accessions[i],
+    rettype = "fasta",
+    retmode = "text"
+  )
+  
+  lines <- strsplit(sequence_data, "\n")[[1]]
+  
+  lines[1] <- paste0(
+    ">",
+    accessions[i],
+    "|",
+    serotypes[i]
+  )
+  
+  fasta_lines <- c(fasta_lines, lines)
+  
+  Sys.sleep(0.4)
+}
+
+writeLines(
+  fasta_lines,
+  "data/dengue_reference_sequences.fasta"
+)
+
+
+sequences <- readDNAStringSet(
+  "data/dengue_reference_sequences.fasta"
+)
+
+length(sequences)
+names(sequences)
+width(sequences)
+
+# Calculate nucleotide frequencies
+base_counts <- letterFrequency(
+  sequences,
+  letters = c("A", "T", "G", "C")
+)
+
+# Display nucleotide counts
+base_counts
+
+# Create a data frame
+sequence_data <- data.frame(
+  Accession = names(sequences),
+  Length = width(sequences),
+  A = base_counts[, "A"],
+  T = base_counts[, "T"],
+  G = base_counts[, "G"],
+  C = base_counts[, "C"]
+)
+
+# Display the table
+print(sequence_data)
+
+# Calculate GC content percentage
+gc_content <- (
+  (base_counts[, "G"] + base_counts[, "C"]) /
+    rowSums(base_counts)
+) * 100
+
+# Add GC content to the data frame
+sequence_data$GC_Content <- gc_content
+
+# Display final results
+print(sequence_data)
+
+write.csv(
+  sequence_data,
+  "results/nucleotide_analysis.csv",
+  row.names = FALSE
+)
+
+print(sequence_data)
+
+# Extract serotype from accession names
+sequence_data$Serotype <- sub(
+  ".*\\|",
+  "",
+  sequence_data$Accession
+)
+
+# Check the updated data
+print(sequence_data)
+
+library(ggplot2)
+
+genome_plot <- ggplot(
+  sequence_data,
+  aes(x = Accession, y = Length, fill = Serotype)
+) +
+  geom_col() +
+  labs(
+    title = "Genome Length Comparison of Dengue Virus Sequences",
+    x = "Sequence Accession",
+    y = "Genome Length (Base Pairs)",
+    fill = "Serotype"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    )
+  )
+
+print(genome_plot)
+
+ggsave(
+  "results/genome_length_comparison.png",
+  plot = genome_plot,
+  width = 10,
+  height = 6
+)
+
+gc_plot <- ggplot(
+  sequence_data,
+  aes(x = Accession, y = GC_Content, fill = Serotype)
+) +
+  geom_col() +
+  labs(
+    title = "GC Content Comparison of Dengue Virus Sequences",
+    x = "Sequence Accession",
+    y = "GC Content (%)",
+    fill = "Serotype"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    )
+  )
+
+print(gc_plot)
+
+ggsave(
+  "results/gc_content_comparison.png",
+  plot = gc_plot,
+  width = 10,
+  height = 6
+)
+
+# Step 8: Multiple Sequence Alignment
+
+aligned_sequences <- AlignSeqs(
+  sequences,
+  processors = 1,
+  verbose = TRUE
+)
+
+# Check number of aligned sequences
+length(aligned_sequences)
+
+# Check aligned sequence lengths
+width(aligned_sequences)
+
+# Display sequence names
+names(aligned_sequences)
+
+writeXStringSet(
+  aligned_sequences,
+  "results/aligned_dengue_sequences.fasta"
+)
+
+subseq(
+  aligned_sequences,
+  start = 1,
+  end = 100
+)
+
+# Step 9: Genetic Distance Calculation
+
+library(ape)
+
+# Import aligned DNA sequences
+dna_data <- read.dna(
+  "results/aligned_dengue_sequences.fasta",
+  format = "fasta"
+)
+
+# Calculate genetic distances
+genetic_distance <- dist.dna(
+  dna_data,
+  model = "raw",
+  pairwise.deletion = TRUE
+)
+
+# Display genetic distance results
+genetic_distance
+
+# Convert distance object into matrix
+distance_matrix <- as.matrix(genetic_distance)
+
+# Display distance matrix
+print(distance_matrix)
+
+write.csv(
+  distance_matrix,
+  "results/genetic_distance_matrix.csv"
+)
+
+# Convert matrix into data frame
+distance_df <- as.data.frame(
+  as.table(distance_matrix)
+)
+
+# Create heatmap
+distance_plot <- ggplot(
+  distance_df,
+  aes(
+    x = Var1,
+    y = Var2,
+    fill = Freq
+  )
+) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(
+    low = "lightblue",
+    high = "darkred"
+  ) +
+  labs(
+    title = "Genetic Distance Heatmap of Dengue Virus Sequences",
+    x = "Sequence",
+    y = "Sequence",
+    fill = "Genetic Distance"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    )
+  )
+
+print(distance_plot)
+
+ggsave(
+  "results/genetic_distance_heatmap.png",
+  plot = distance_plot,
+  width = 9,
+  height = 7
+)
+
+print(distance_matrix)
+
+# Step 10: Phylogenetic Tree Construction
+
+library(ape)
+
+# Construct Neighbor-Joining tree
+phylo_tree <- nj(genetic_distance)
+
+# Display the tree
+plot(
+  phylo_tree,
+  main = "Phylogenetic Tree of Dengue Virus Serotypes",
+  cex = 0.8,
+  tip.color = "blue"
+)
+
+# Add scale bar
+add.scale.bar()
+
+png(
+  "results/phylogenetic_tree.png",
+  width = 1200,
+  height = 900
+)
+
+plot(
+  phylo_tree,
+  main = "Phylogenetic Tree of Dengue Virus Serotypes",
+  cex = 0.8,
+  tip.color = "blue"
+)
+
+add.scale.bar()
+
+dev.off()
+
+write.tree(
+  phylo_tree,
+  file = "results/phylogenetic_tree.nwk"
+)
+
+print(phylo_tree)
+length(phylo_tree$tip.label)
