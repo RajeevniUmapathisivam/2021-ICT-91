@@ -1,0 +1,144 @@
+
+---
+title: "Comparative Genomic Analysis and Phylogenetic Relationships of Dengue Virus Serotypes Using R"
+author: "2021/ICT/91"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# 1. Introduction
+
+Dengue is a mosquito-borne viral disease caused by the dengue virus. It has four major serotypes: DENV-1, DENV-2, DENV-3 and DENV-4.
+
+This project uses bioinformatics techniques in R to compare eight dengue virus nucleotide sequences and investigate their genetic similarities and differences.
+
+# 2. Objectives
+
+- Analyze nucleotide frequencies.
+- Calculate GC content.
+- Compare genome lengths.
+- Perform multiple sequence alignment.
+- Calculate genetic distances.
+- Construct a phylogenetic tree.
+
+# 3. Dataset Description
+
+Eight nucleotide sequences were downloaded from the NCBI GenBank database.
+
+| Serotype | Accession numbers |
+|---|---|
+| DENV-1 | KM204119, EU848545 |
+| DENV-2 | KM204118, AF038403 |
+| DENV-3 | KU050695, M93130 |
+| DENV-4 | KR011349, AY947539 |
+
+# 4. Nucleotide Analysis
+
+The nucleotide frequencies of adenine (A), thymine (T), guanine (G) and cytosine (C) were calculated.
+
+```{r}
+sequence_data <- read.csv("results/nucleotide_analysis.csv")
+knitr::kable(sequence_data, digits = 3)
+```
+
+# 5. Genome Length Comparison
+
+The following graph compares the lengths of the eight dengue virus sequences.
+
+```{r, echo=FALSE, out.width="100%"}
+knitr::include_graphics("results/genome_length_comparison.png")
+```
+
+# 6. GC Content Comparison
+
+GC content represents the percentage of guanine and cytosine in each DNA sequence.
+
+```{r, echo=FALSE, out.width="100%"}
+knitr::include_graphics("results/gc_content_comparison.png")
+```
+
+DENV-4 had the highest average GC content (47.21%), while DENV-2 had the lowest average GC content (46.05%).
+
+# 7. Multiple Sequence Alignment
+
+Multiple sequence alignment was performed using the DECIPHER package.
+
+The aligned sequences are stored in:
+
+`results/aligned_dengue_sequences.fasta`
+
+This process helps compare corresponding nucleotide positions across the selected sequences.
+
+# 8. Genetic Distance Analysis
+
+Pairwise genetic distances were calculated using the raw distance model.
+
+```{r}
+distance_matrix <- as.matrix(
+  read.csv(
+    "results/genetic_distance_matrix.csv",
+    row.names = 1,
+    check.names = FALSE
+  )
+)
+
+knitr::kable(round(distance_matrix, 5))
+```
+
+The two sequences within each serotype showed relatively low genetic distances.
+
+# 9. Genetic Distance Heatmap
+
+The heatmap visualizes the genetic distances between the eight sequences.
+
+```{r, echo=FALSE, out.width="100%"}
+knitr::include_graphics("results/genetic_distance_heatmap.png")
+```
+
+Lower genetic distances indicate greater sequence similarity, while higher values indicate greater differences.
+
+# 10. Phylogenetic Tree
+
+A Neighbor-Joining phylogenetic tree was constructed using the genetic distance matrix.
+
+```{r, echo=FALSE, out.width="100%"}
+knitr::include_graphics("results/phylogenetic_tree.png")
+```
+
+The two selected sequences belonging to each serotype formed a pair in the resulting tree.
+
+# 11. Discussion
+
+The analysis identified differences in nucleotide composition and GC content among the selected dengue virus sequences.
+
+The genetic distance matrix showed that the two selected sequences within each serotype were more similar to each other than to sequences from different serotypes.
+
+The phylogenetic tree supported these observations by grouping the two selected sequences belonging to each serotype together.
+
+These findings describe the eight selected sequences and do not represent the complete genetic diversity of all dengue virus strains.
+
+# 12. Limitations
+
+- Only eight sequences were included.
+- Two sequences represented each serotype.
+- The selected records have slightly different sequence lengths.
+- The raw distance model does not correct for multiple substitutions.
+- Bootstrap support was not calculated for the phylogenetic tree.
+
+# 13. Conclusion
+
+This project demonstrated the application of R-based bioinformatics techniques to comparative genomic analysis of dengue virus sequences.
+
+Nucleotide frequency analysis, GC-content calculation, multiple sequence alignment, genetic distance calculation and phylogenetic tree construction were successfully performed.
+
+The results showed genetic similarities between the selected sequences within each serotype and differences between the selected serotypes.
+
+# 14. References
+
+1. Añez, G. et al. (2016). Complete Genome Sequences of Dengue Virus Type 1 to 4 Strains Used for the Development of CBER/FDA RNA Reference Reagents and WHO International Standard Candidates for Nucleic Acid Testing. *Genome Announcements*, 4(1), e01583-15. https://doi.org/10.1128/genomeA.01583-15
+
+2. National Center for Biotechnology Information (NCBI). GenBank. https://www.ncbi.nlm.nih.gov/nuccore/
+
+3. Paradis, E. and Schliep, K. (2019). ape 5.0: An environment for modern phylogenetics and evolutionary analyses in R. *Bioinformatics*, 35(3), 526–528.
+
+4. Wickham, H. (2016). *ggplot2: Elegant Graphics for Data Analysis*. Springer.
